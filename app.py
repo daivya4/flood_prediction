@@ -18,6 +18,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 # --- Page Setup ---
 st.set_page_config(page_title="Flood Risk Prediction", page_icon=":umbrella:", layout="wide")
@@ -179,21 +180,29 @@ if submitted:
         # Small chart: radar-like bar for key features
         st.markdown("---")
         st.markdown("**Feature contributions (simple visualization)**")
-        try:
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(6,2.2))
-            feat = ['Rainfall','River Discharge','Water Level','Population Density']
-            vals = [input_df['Rainfall (mm)'].iloc[0], input_df['River Discharge (m³/s)'].iloc[0], input_df['Water Level (m)'].iloc[0], input_df['Population Density'].iloc[0]]
-            vals = np.array(vals).astype(float)
-            vals = (vals - vals.min()) / (vals.max()-vals.min()+1e-6)
-            ax.barh(feat, vals, color=['#0ea5a4','#0ea5a4','#f97316','#60a5fa'])
-            ax.set_xlim(0,1)
-            ax.set_xlabel('Normalized (0-1)')
-            st.pyplot(fig)
-        except Exception as e:
-            st.write('Could not render chart:', e)
+        features = ['Rainfall (mm)', 'River Discharge (m³/s)', 'Water Level (m)', 'Population Density']
+        values = [input_df[f].iloc[0] for f in features]
 
-        st.success('Prediction complete')
+# Normalize for comparison
+        vals_norm = (np.array(values) - np.min(values)) / (np.max(values) - np.min(values) + 1e-6)
+
+# Smaller figure
+        fig, ax = plt.subplots(figsize=(5, 2))
+
+        bars = ax.bar(features, vals_norm, width=0.5)
+
+# Add value labels above bars
+        for bar, val in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+            f"{val:.1f}", ha='center', fontsize=8)
+
+        ax.set_ylabel("Relative Level (0–1)", fontsize=8)
+        ax.set_title("Key Feature Levels", fontsize=10, pad=8)
+        ax.set_ylim(0, 1.15)
+        plt.xticks(rotation=15, fontsize=8)
+        plt.yticks(fontsize=8)
+        plt.tight_layout()
+        st.pyplot(fig)
 
     else:
         st.error('Prediction failed due to missing models or errors. Check logs.')
